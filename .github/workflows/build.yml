@@ -61,7 +61,9 @@ jobs:
           cd sm8550
 
           curl -LSs "https://raw.githubusercontent.com/KOWX712/KernelSU/main/kernel/setup.sh" | bash -s master
-
+          
+          git config --global user.email "ci@example.com"
+          git config --global user.name "CI Bot"
           git add .
           git commit -m "Commit for clean status"
 
