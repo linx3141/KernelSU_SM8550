@@ -22,8 +22,7 @@ on:
         options:
           - LineageOS
           - crdroidandroid
-          - OnePlus12R-development
-          
+        
       kernel_branch:
         description: Kernel Branch(such as lineage-23.2 sixteen-qpr1)
         required: true
@@ -36,12 +35,7 @@ on:
         type: choice
         options:
           - None
-          - Official-KernelSU
-          - KernelSU-Next
-          - KernelSU-Next-with-susfs
-          - KowSU
-          - ReSukiSU
-          - ReSukiSU-with-susfs
+          - KernelSU-by-\xx
           
 jobs:
   SM8550_Kernel_CI:
@@ -107,60 +101,24 @@ jobs:
           export OBJCOPY="${CLANG_ROOT}/llvm-objcopy"
           export OBJDUMP="${CLANG_ROOT}/llvm-objdump"
           export STRIP="${CLANG_ROOT}/llvm-strip"
+          export CROSS_COMPILE=aarch64-linux-gnu-
 
-          cd sm8550
+          cd sm8150
 
           case "${{ inputs.ksu_type }}" in
           
             "None")
               ;;
               
-            "Official-KernelSU")
-              curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -s main
-              ;;
-              
-            "KowSU")
-               curl -LSs "https://raw.githubusercontent.com/KOWX712/KernelSU/main/kernel/setup.sh" | bash -s master
-              ;;
-
-            "KernelSU-Next")
-              curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -s dev
-              ;;
-
-            "KernelSU-Next-with-susfs")
-              curl -LSs "https://raw.githubusercontent.com/pershoot/KernelSU-Next/refs/heads/dev-susfs/kernel/setup.sh" | bash -s dev-susfs
-              ;;
-
-            "ReSukiSU"|"ReSukiSU-with-susfs")
-              curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash -s builtin
+            "KernelSU-by-\xx")
+              curl -LSs "https://raw.githubusercontent.com/backslashxx/KernelSU/refs/heads/master/kernel/setup.sh" | bash -s master
               ;;
           esac
           
-          if [[ "${{ inputs.ksu_type }}" == *susfs ]]; then
-            git clone -b gki-android13-5.15 https://gitlab.com/simonpunk/susfs4ksu.git susfs
-            cd susfs
-            cp ./kernel_patches/50_add_susfs_in_gki-android13-5.15.patch ..
-            cp ./kernel_patches/fs/* ../fs/
-            cp ./kernel_patches/include/linux/* ../include/linux/
-            cd ..
-            patch -p1 < 50_add_susfs_in_gki-android13-5.15.patch
-            echo "CONFIG_KSU_SUSFS=y" >> arch/arm64/configs/gki_defconfig
-            echo "CONFIG_KSU_SUSFS_SUS_PATH=y" >> arch/arm64/configs/gki_defconfig
-            echo "CONFIG_KSU_SUSFS_SUS_MOUNT=y" >> arch/arm64/configs/gki_defconfig
-            echo "CONFIG_KSU_SUSFS_SUS_KSTAT=y" >> arch/arm64/configs/gki_defconfig
-            echo "CONFIG_KSU_SUSFS_SPOOF_UNAME=n" >> arch/arm64/configs/gki_defconfig
-            echo "CONFIG_KSU_SUSFS_ENABLE_LOG=y" >> arch/arm64/configs/gki_defconfig
-            echo "CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y" >> arch/arm64/configs/gki_defconfig
-            echo "CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y" >> arch/arm64/configs/gki_defconfig
-            echo "CONFIG_KSU_SUSFS_SUS_MAP=y" >> arch/arm64/configs/gki_defconfig
-          fi
-          
           touch ./.scmversion
           
-          echo "CONFIG_TMPFS_XATTR=y" >> arch/arm64/configs/gki_defconfig
-          make O=out gki_defconfig vendor/kalama_GKI.config vendor/oplus/kalama_GKI.config vendor/debugfs.config
-          
-          make -j2 O=out
+          make O=out vendor/sm8150-perf_defconfig vendor/oplus.config
+          make -j2 O=out Image
 
       - name: Make AnyKernel3
         run: |
