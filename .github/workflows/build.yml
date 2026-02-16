@@ -115,7 +115,8 @@ jobs:
               curl -LSs "https://raw.githubusercontent.com/backslashxx/KernelSU/refs/heads/master/kernel/setup.sh" | bash -s master
               ;;
           esac
-          
+
+          echo "CONFIG_KSU_TAMPER_SYSCALL_TABLE=y" > arch/arm64/configs/vendor/sm8150-perf_defconfig
           touch ./.scmversion
           
           make O=out vendor/sm8150-perf_defconfig vendor/oplus.config
