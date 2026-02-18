@@ -22,8 +22,6 @@ on:
         options:
           - LineageOS
           - crdroidandroid
-          - Waffle-SM8650
-          - Sukimoka
 
       module_source:
         description: Kernel Module Source Code
@@ -32,8 +30,6 @@ on:
         options:
           - LineageOS
           - crdroidandroid
-          - Waffle-SM8650
-          - Sukimoka
           
       kernel_branch:
         description: Kernel Branch(such as lineage-23.2 sixteen-qpr1)
@@ -55,7 +51,7 @@ on:
           - ReSukiSU-with-susfs
 
       kernel_name:
-        description: "Custom Kernel Name (e.g. -MyKernel, leave blank to use default)"
+        description: "Custom Kernel Name"
         required: false
         type: string
         default: ""
