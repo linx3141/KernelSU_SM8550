@@ -23,6 +23,7 @@ on:
           - LineageOS
           - crdroidandroid
           - Waffle-SM8650
+          - Sukimoka
           
       kernel_branch:
         description: Kernel Branch(such as lineage-23.2 sixteen-qpr1)
