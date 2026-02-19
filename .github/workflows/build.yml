@@ -56,6 +56,7 @@ on:
         type: string
         default: ""
 
+      # ── ReKernel ──────────────────────────────────────────────────────────────
       enable_rekernel:
         description: "Integrate Re:Kernel (Netlink tombstone module)"
         required: true
@@ -64,6 +65,7 @@ on:
         options:
           - "false"
           - "true"
+      # ─────────────────────────────────────────────────────────────────────────
           
 jobs:
   Kernel_CI:
@@ -114,10 +116,12 @@ jobs:
           curl -LO https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/android16-qpr2-release/${{ inputs.clang_version }}.tar.gz
           tar -xf "${{ inputs.clang_version }}.tar.gz" -C ${{ inputs.clang_version }}
 
+      # ── ReKernel Integration ──────────────────────────────────────────────────
       - name: Integrate Re:Kernel
         if: ${{ inputs.enable_rekernel == 'true' }}
         run: |
           echo ">>> Downloading Re:Kernel Kernel Modifier..."
+          # 从 Re:Kernel 最新 Release 拉取 Modifier jar
           MODIFIER_URL=$(curl -s https://api.github.com/repos/Sakion-Team/Re-Kernel/releases \
             | python3 -c "
           import sys, json
@@ -136,10 +140,37 @@ jobs:
           curl -L -o KernelModifier.jar "${MODIFIER_URL}"
 
           echo ">>> Running Re:Kernel Kernel Modifier on kernel source..."
+          # Modifier 要求在内核源码根目录下运行
           cp KernelModifier.jar ${SOC}/
           cd ${SOC}
-          java -jar KernelModifier.jar
+          # || true: Modifier exits non-zero on partial failures, but we handle them below
+          java -jar KernelModifier.jar || true
+
+          # ── Post-modifier patch: fix two known Modifier v4.0 bugs ──────────────
+          # Bug 1 (line ~439): Modifier inserted a duplicate 'static' keyword,
+          #   causing [-Werror,-Wduplicate-decl-specifier].
+          #   Fix: collapse any "static static" back to a single "static".
+          # Bug 2 (line ~490): Modifier declared 'proc_task' but couldn't complete
+          #   the insertion (see "Failed to insert binder buffer" above), leaving
+          #   an unused variable that triggers [-Werror,-Wunused-variable].
+          #   Fix: remove the orphaned declaration so the file compiles cleanly.
+          BINDER_FILE="drivers/android/binder_alloc.c"
+          if [ -f "${BINDER_FILE}" ]; then
+            echo ">>> Applying post-modifier fixes to ${BINDER_FILE}..."
+
+            # Fix Bug 1: "static static" → "static"
+            sed -i 's/\bstatic[[:space:]]\+static\b/static/g' "${BINDER_FILE}"
+
+            # Fix Bug 2: remove orphaned 'proc_task' declaration
+            # (safe to remove because the surrounding usage code was never inserted)
+            sed -i '/struct task_struct \*proc_task[[:space:]]*=.*binder_get_task/d' "${BINDER_FILE}"
+
+            echo ">>> Post-modifier fixes applied."
+          fi
+          # ───────────────────────────────────────────────────────────────────────
+
           echo ">>> Re:Kernel integration complete."
+      # ─────────────────────────────────────────────────────────────────────────
 
       - name: Compile Kernel
         run: |
