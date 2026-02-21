@@ -22,7 +22,8 @@ on:
         options:
           - LineageOS
           - crdroidandroid
-        
+          - ReSukiSU-with-susfs
+          
       kernel_branch:
         description: Kernel Branch(such as lineage-23.2 sixteen-qpr1)
         required: true
@@ -114,11 +115,32 @@ jobs:
             "KernelSU-by-xx")
               curl -LSs "https://raw.githubusercontent.com/backslashxx/KernelSU/refs/heads/master/kernel/setup.sh" | bash -s master
               ;;
+            "ReSukiSU-with-susfs")
+              curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash -s main
           esac
 
           touch ./.scmversion
           
+          if [[ "${{ inputs.ksu_type }}" == *susfs ]]; then
+            curl -Lo susfs.patch https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/refs/heads/mainline/Patches/Patch/susfs_patch_to_4.14.patch
+            curl -Lo inline.sh https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/refs/heads/mainline/Patches/susfs_inline_hook_patches.sh
+            patch -p1 < susfs.patch
+            sh inline.sh
+            
+            echo "CONFIG_KSU=y" >> arch/arm64/configs/vendor/sm8150-perf_defconfig
+            echo "CONFIG_KSU_SUSFS=y" >> arch/arm64/configs/vendor/sm8150-perf_defconfig
+            echo "CONFIG_KSU_SUSFS_SUS_PATH=y" >> arch/arm64/configs/vendor/sm8150-perf_defconfig
+            echo "CONFIG_KSU_SUSFS_SUS_MOUNT=y" >> arch/arm64/configs/vendor/sm8150-perf_defconfig
+            echo "CONFIG_KSU_SUSFS_SUS_KSTAT=y" >> arch/arm64/configs/vendor/sm8150-perf_defconfig
+            echo "CONFIG_KSU_SUSFS_SPOOF_UNAME=n" >> arch/arm64/configs/vendor/sm8150-perf_defconfig
+            echo "CONFIG_KSU_SUSFS_ENABLE_LOG=y" >> arch/arm64/configs/vendor/sm8150-perf_defconfig
+            echo "CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y" >> arch/arm64/configs/vendor/sm8150-perf_defconfig
+            echo "CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y" >> arch/arm64/configs/vendor/sm8150-perf_defconfig
+            echo "CONFIG_KSU_SUSFS_SUS_MAP=y" >> arch/arm64/configs/vendor/sm8150-perf_defconfig
+          fi
+          
           make O=out vendor/sm8150-perf_defconfig vendor/oplus.config
+
           if [[ "${{ inputs.ksu_type }}" == "KernelSU-by-xx" ]]; then
             echo "CONFIG_KSU_TAMPER_SYSCALL_TABLE=y" >> out/.config
           fi
